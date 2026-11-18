@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FY27 SWN Circles C10</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #f3f0ff; color: #1e0e4a; min-height: 100vh; }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: linear-gradient(135deg, #1a0fa8 0%, #3d1fc9 40%, #6b28d4 100%);
+    padding: 0 40px;
+    display: flex; align-items: center; gap: 0;
+    box-shadow: 0 2px 20px rgba(60,20,180,0.4);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-brand {
+    color: #06d6c7; font-size: 12px; font-weight: 800;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 18px 0; margin-right: 32px; white-space: nowrap;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .w-mini {
+    width: 28px; height: 28px; background: #fff; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .tabs { display: flex; gap: 0; flex: 1; overflow-x: auto; }
+  .tab {
+    padding: 18px 22px; font-size: 12px; font-weight: 600;
+    color: rgba(255,255,255,0.55); cursor: pointer; white-space: nowrap;
+    border-bottom: 3px solid transparent; transition: all 0.2s;
+    user-select: none;
+  }
+  .tab:hover { color: rgba(255,255,255,0.85); }
+  .tab.active { color: #fff; border-bottom-color: #06d6c7; }
+  .tab .tab-dot {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: #7c3aed; margin-right: 6px; vertical-align: middle;
+  }
+  .tab.active .tab-dot { background: #06d6c7; }
+  .tab.done .tab-dot { background: #22c55e; }
+  .tab.upcoming .tab-dot { background: rgba(255,255,255,0.25); }
+
+  /* ── SHEETS ── */
+  .sheet { display: none; }
+  .sheet.active { display: block; }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, #1a0fa8 0%, #3d1fc9 25%, #5b2be8 50%, #7b35e8 75%, #6b28d4 100%);
+    padding: 56px 60px 48px;
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 40px; align-items: center;
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 70% 50%, rgba(120,60,240,0.4) 0%, transparent 60%),
+                radial-gradient(ellipse at 15% 85%, rgba(30,10,180,0.5) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .hero-label { color: #06d6c7; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 16px; }
+  .hero-title { font-size: 54px; font-weight: 900; color: #fff; line-height: 1.1; margin-bottom: 16px; position: relative; }
+  .hero-meta { font-size: 15px; color: rgba(255,255,255,0.7); margin-bottom: 24px; }
+  .hero-tagline { font-size: 17px; font-weight: 700; color: #fff; line-height: 1.6; position: relative; }
+  .hero-right { display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; flex-shrink: 0; }
+  .w-circle {
+    width: 180px; height: 180px; border-radius: 50%; background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3); position: relative;
+    animation: float 4s ease-in-out infinite;
+  }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .star { position: absolute; }
+
+  /* ── ROADMAP ── */
+  .roadmap-wrap { background: linear-gradient(135deg,#e8e0ff,#f3f0ff,#ede8ff); padding: 36px 60px; border-bottom: 1px solid #d8cef5; }
+  .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #7c3aed; margin-bottom: 18px; }
+  .roadmap { display: grid; grid-template-columns: repeat(6,1fr); gap: 10px; }
+  .rcard { background: #fff; border-radius: 14px; padding: 16px 12px; text-align: center; border: 2px solid #e9e0ff; position: relative; display: flex; flex-direction: column; gap: 5px; cursor: pointer; transition: transform 0.15s; }
+  .rcard:hover { transform: translateY(-2px); }
+  .rcard.active { background: #7c3aed; border-color: #7c3aed; }
+  .rcard.done { border-color: #22c55e; }
+  .rcard:not(:last-child)::after { content: '›'; position: absolute; right: -12px; top: 50%; transform: translateY(-50%); font-size: 18px; color: #a78bfa; font-weight: 700; z-index: 2; }
+  .rcard-month { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #a78bfa; }
+  .rcard.active .rcard-month { color: rgba(255,255,255,0.7); }
+  .rcard.done .rcard-month { color: #16a34a; }
+  .rcard-action { font-size: 16px; font-weight: 900; color: #4f46e5; }
+  .rcard.active .rcard-action { color: #fff; }
+  .rcard.done .rcard-action { color: #16a34a; }
+  .rcard-q { font-size: 10px; color: #6b5a9a; line-height: 1.5; margin-top: 3px; }
+  .rcard.active .rcard-q { color: rgba(255,255,255,0.85); }
+  .rcard-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 8px; margin-top: 5px; display: inline-block; }
+  .rcard.active .rcard-badge { background: rgba(255,255,255,0.2); color: #fff; }
+  .rcard.done .rcard-badge { background: #dcfce7; color: #16a34a; }
+  .rcard:not(.active):not(.done) .rcard-badge { background: #f3f0ff; color: #a78bfa; }
+
+  /* ── CONTENT CONTAINER ── */
+  .content { max-width: 900px; margin: 0 auto; padding: 40px 40px; }
+  .content-wide { max-width: 1000px; margin: 0 auto; padding: 40px 40px; }
+
+  /* ── CARDS ── */
+  .card { background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 24px rgba(124,58,237,0.08); margin-bottom: 24px; border: 1px solid #e8e0ff; }
+  .card-header { padding: 20px 28px; display: flex; justify-content: space-between; align-items: center; }
+  .card-header h2 { font-size: 17px; font-weight: 800; }
+  .card-body { padding: 24px 28px; }
+  .date-badge { background: rgba(255,255,255,0.2); border-radius: 20px; padding: 4px 13px; font-size: 11px; font-weight: 700; border: 1px solid rgba(255,255,255,0.3); }
+
+  /* ── ATTENDEES ── */
+  .attendees { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+  .attendee { display: flex; align-items: center; gap: 8px; background: #f5f0ff; border-radius: 30px; padding: 6px 13px 6px 6px; border: 1px solid #e0d4ff; }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0; }
+  .att-name { font-size: 12px; font-weight: 700; color: #1e0e4a; }
+  .att-role { font-size: 10px; color: #7c3aed; }
+
+  /* ── STITLE ── */
+  .stitle { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #a78bfa; border-bottom: 1px solid #ede9ff; padding-bottom: 6px; margin-bottom: 14px; margin-top: 20px; }
+  .stitle:first-child { margin-top: 0; }
+
+  /* ── THEME PILLS ── */
+  .themes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+  .pill { padding: 4px 13px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid; }
+  .pp { background:#f5f0ff; border-color:#c4b5fd; color:#6d28d9; }
+  .pk { background:#fff0f6; border-color:#f9a8d4; color:#be185d; }
+  .pb { background:#eff6ff; border-color:#93c5fd; color:#1d4ed8; }
+  .pg { background:#f0fdf4; border-color:#86efac; color:#166534; }
+  .po { background:#fff7ed; border-color:#fdba74; color:#c2410c; }
+
+  /* ── MEMBER MAP ── */
+  .member-map { display: flex; flex-direction: column; gap: 16px; }
+  .mcard { border-radius: 14px; overflow: hidden; border: 1px solid #e8e0ff; }
+  .mcard-header { padding: 11px 18px; display: flex; align-items: center; gap: 10px; }
+  .mcard-name { font-weight: 800; color: #fff; font-size: 14px; }
+  .mcard-role { font-size: 11px; color: rgba(255,255,255,0.75); }
+  .mcard-body { display: grid; grid-template-columns: 1fr 1fr; }
+  .mcard-col { padding: 15px 18px; }
+  .mcard-col-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 7px; }
+  .mcard-col-text { font-size: 12px; color: #4b4680; line-height: 1.7; }
+
+  /* ── HIGHLIGHTS / ADVICE ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .hcard { background: #faf8ff; border-radius: 11px; padding: 14px 16px; border-left: 3px solid #7c3aed; }
+  .hcard-name { font-size: 11px; font-weight: 800; color: #7c3aed; margin-bottom: 5px; }
+  .hcard-text { font-size: 12px; color: #4b4680; line-height: 1.6; }
+  .acard { background: linear-gradient(135deg,#faf8ff,#f3f0ff); border-radius: 11px; padding: 14px 16px; border: 1px solid #e8e0ff; }
+  .acard-name { font-size: 11px; font-weight: 800; color: #4f46e5; margin-bottom: 4px; }
+  .acard-text { font-size: 12px; color: #4b4680; line-height: 1.6; font-style: italic; }
+
+  /* ── GOALS TABLE ── */
+  .goals-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .goals-table th { text-align: left; padding: 9px 14px; background: #ece5ff; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #7c3aed; }
+  .goals-table td { padding: 12px 14px; border-bottom: 1px solid #ede9ff; vertical-align: top; }
+  .goals-table tr:last-child td { border-bottom: none; }
+  .goals-table tr:hover td { background: #faf8ff; }
+
+  /* ── PLACEHOLDER ── */
+  .placeholder {
+    text-align: center; padding: 80px 40px;
+    background: #fff; border-radius: 18px; border: 2px dashed #d8cef5;
+    margin-bottom: 24px;
+  }
+  .placeholder-icon { font-size: 48px; margin-bottom: 16px; }
+  .placeholder-title { font-size: 18px; font-weight: 800; color: #7c3aed; margin-bottom: 8px; }
+  .placeholder-sub { font-size: 13px; color: #9b91bf; }
+
+  /* ── NEXT SESSION CARD ── */
+  .next-card {
+    background: linear-gradient(135deg,#1a0fa8,#5b2be8,#7b35e8);
+    border-radius: 18px; padding: 28px 32px;
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 24px; align-items: center;
+    box-shadow: 0 8px 40px rgba(90,43,232,0.35);
+    margin-bottom: 24px;
+  }
+  .next-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #06d6c7; margin-bottom: 8px; }
+  .next-title { font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+  .next-sub { font-size: 13px; color: rgba(255,255,255,0.7); }
+  .hw-box { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; padding: 13px 16px; margin-top: 14px; }
+  .hw-label { font-size: 10px; font-weight: 700; color: #06d6c7; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px; }
+  .hw-text { font-size: 12px; color: rgba(255,255,255,0.9); line-height: 1.6; }
+  .date-box { background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); border-radius: 14px; padding: 18px 22px; text-align: center; flex-shrink: 0; }
+  .db-month { font-size: 12px; font-weight: 700; color: #06d6c7; text-transform: uppercase; letter-spacing: 0.1em; }
+  .db-day { font-size: 48px; font-weight: 900; color: #fff; line-height: 1; }
+  .db-year { font-size: 11px; color: rgba(255,255,255,0.5); }
+</style>
+</head>
+<body>
+
+<!-- ══ TOP NAV ══ -->
+<nav class="topbar">
+  <div class="topbar-brand">
+    <div class="w-mini">
+      <svg width="18" height="14" viewBox="0 0 110 75" fill="none">
+        <path d="M5 8 L27 70 L40 34" stroke="#f73c8d" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M40 34 L55 70 L70 34" stroke="#8b62cc" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M70 34 L84 70 L105 8" stroke="#3dcfc0" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    FY27 SWN · C10
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="showSheet('overview')" id="tab-overview">
+      <span class="tab-dot"></span>Overview &amp; Stages
+    </div>
+    <div class="tab done" onclick="showSheet('oct')" id="tab-oct">
+      <span class="tab-dot done"></span>Session 1 · Oct 30
+    </div>
+    <div class="tab done" onclick="showSheet('nov')" id="tab-nov">
+      <span class="tab-dot done"></span>Session 2 · Nov 17
+    </div>
+    <div class="tab upcoming" onclick="showSheet('dec')" id="tab-dec">
+      <span class="tab-dot upcoming"></span>Session 3 · Dec/Jan
+    </div>
+    <div class="tab upcoming" onclick="showSheet('feb')" id="tab-feb">
+      <span class="tab-dot upcoming"></span>Session 4 · Feb
+    </div>
+    <div class="tab upcoming" onclick="showSheet('mar')" id="tab-mar">
+      <span class="tab-dot upcoming"></span>Session 5 · Mar
+    </div>
+    <div class="tab upcoming" onclick="showSheet('apr')" id="tab-apr">
+      <span class="tab-dot upcoming"></span>Session 6 · Apr
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- SHEET 1: OVERVIEW & STAGES                  -->
+<!-- ══════════════════════════════════════════ -->
+<div class="sheet active" id="sheet-overview">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div style="position:relative;z-index:1;">
+      <div class="hero-label">FY27 SWN Circles · C10</div>
+      <h1 class="hero-title">SWN Circles<br>FY27</h1>
+      <div class="hero-meta">6 Sessions · October 2026 – April 2027</div>
+      <div class="hero-tagline">Clarify where you are.&nbsp; Name what you want.<br>Use the Circle intentionally.</div>
+    </div>
+    <div class="hero-right">
+      <div style="position:relative;">
+        <div class="w-circle">
+          <!-- To use the official image: save swn-logo.png in this folder and replace this SVG with <img src="swn-logo.png" style="width:110px;"> -->
+          <svg width="110" height="78" viewBox="0 0 120 82" fill="none">
+            <defs>
+              <linearGradient id="gPink" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#ff5ca8"/><stop offset="100%" stop-color="#d42878"/>
+              </linearGradient>
+              <linearGradient id="gMid" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#9b5dd4"/><stop offset="100%" stop-color="#6aaae8"/>
+              </linearGradient>
+              <linearGradient id="gTeal" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#62c8f0"/><stop offset="100%" stop-color="#3dcfc0"/>
+              </linearGradient>
+            </defs>
+            <path d="M6 7 L29 74 L43 36" stroke="url(#gPink)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M43 36 L58 74 L73 36" stroke="url(#gMid)"  stroke-width="16" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M73 36 L88 74 L112 7" stroke="url(#gTeal)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <span style="position:absolute;top:-10px;right:-30px;font-size:22px;">✦</span>
+        <span style="position:absolute;top:28px;right:-48px;font-size:14px;color:#ffd700;">✦</span>
+        <span style="position:absolute;bottom:18px;right:-38px;font-size:26px;color:#ffd700;">★</span>
+        <span style="position:absolute;bottom:-20px;left:-28px;font-size:48px;">🤩</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section class="roadmap-wrap">
+    <div class="section-label">FY27 Journey — 6 Sessions</div>
+    <div class="roadmap">
+      <div class="rcard done" onclick="showSheet('oct')">
+        <div class="rcard-month">OCT 30</div>
+        <div class="rcard-action">CLARIFY</div>
+        <div class="rcard-q">Where am I going?</div>
+        <span class="rcard-badge">✓ Completed</span>
+      </div>
+      <div class="rcard done" onclick="showSheet('nov')">
+        <div class="rcard-month">NOV 17</div>
+        <div class="rcard-action">POSITION</div>
+        <div class="rcard-q">How do I communicate my value?</div>
+        <span class="rcard-badge">✓ Completed</span>
+      </div>
+      <div class="rcard" onclick="showSheet('dec')">
+        <div class="rcard-month">DEC/JAN</div>
+        <div class="rcard-action">ADAPT</div>
+        <div class="rcard-q">How do I stay relevant?</div>
+        <span class="rcard-badge">Upcoming</span>
+      </div>
+      <div class="rcard" onclick="showSheet('feb')">
+        <div class="rcard-month">FEB</div>
+        <div class="rcard-action">CONNECT</div>
+        <div class="rcard-q">Who needs to be in my career community?</div>
+        <span class="rcard-badge">Upcoming</span>
+      </div>
+      <div class="rcard" onclick="showSheet('mar')">
+        <div class="rcard-month">MAR</div>
+        <div class="rcard-action">ADVOCATE</div>
+        <div class="rcard-q">How do I ask for what I need?</div>
+        <span class="rcard-badge">Upcoming</span>
+      </div>
+      <div class="rcard" onclick="showSheet('apr')">
+        <div class="rcard-month">APR</div>
+        <div class="rcard-action">ACT</div>
+        <div class="rcard-q">What am I doing next?</div>
+        <span class="rcard-badge">Upcoming</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="content-wide">
+
+    <!-- MEMBER GOALS -->
+    <div class="card">
+      <div class="card-header" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);">
+        <h2 style="color:#fff;">SWN Circles FY27 — Member Goals</h2>
+        <span class="date-badge">FY27</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <table class="goals-table">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>Role</th>
+              <th>Where I Am</th>
+              <th>6-Month Goal</th>
+              <th>Growth Area</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong style="color:#7c3aed;">Gabriela Garcia</strong><br><span style="font-size:10px;color:#a78bfa;">Moderator</span></td>
+              <td style="font-size:12px;">Solution Engineer · 5 yrs</td>
+              <td style="font-size:12px;">Uncertainty stage — technical vs. sales path</td>
+              <td style="font-size:12px;color:#4f46e5;"><strong>Define new career strategy.</strong> Clarify direction in 6 months.</td>
+              <td style="font-size:12px;">Learn to say no / set limits</td>
+            </tr>
+            <tr>
+              <td><strong style="color:#be185d;">Christina Lavash</strong></td>
+              <td style="font-size:12px;">Customer Success Mgr · 1.5 yrs</td>
+              <td style="font-size:12px;">Survived tough first year. Ready to explore beyond CS.</td>
+              <td style="font-size:12px;color:#4f46e5;"><strong>Identify internal role &amp; start applying.</strong></td>
+              <td style="font-size:12px;">Trust herself / due diligence</td>
+            </tr>
+            <tr>
+              <td><strong style="color:#0891b2;">Lauren Sturla</strong></td>
+              <td style="font-size:12px;">Program Mgr M&amp;A · 7 mos</td>
+              <td style="font-size:12px;">Very new, coming from 12 yrs at another company.</td>
+              <td style="font-size:12px;color:#4f46e5;"><strong>Understand ecosystem &amp; build internal network.</strong></td>
+              <td style="font-size:12px;">Patience with herself / learning pace</td>
+            </tr>
+            <tr>
+              <td><strong style="color:#d97706;">Stephany Fletcher</strong></td>
+              <td style="font-size:12px;">Marketing / Enablement · 4.5 yrs</td>
+              <td style="font-size:12px;">Makes others shine — becomes invisible. Tired from AI change.</td>
+              <td style="font-size:12px;color:#4f46e5;"><strong>Concrete career plan + self-advocacy in practice.</strong></td>
+              <td style="font-size:12px;">Self-advocacy / work-life integration</td>
+            </tr>
+            <tr>
+              <td><strong style="color:#16a34a;">Kerry Hughes</strong></td>
+              <td style="font-size:12px;">Slack Marketing · 7 mos</td>
+              <td style="font-size:12px;">Happy with team but insular. Impostor syndrome cross-team.</td>
+              <td style="font-size:12px;color:#4f46e5;"><strong>Expand internal network. Be more ambitious.</strong></td>
+              <td style="font-size:12px;">Overcome impostor syndrome / navigate politics</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- NEXT SESSION PREVIEW -->
+    <div class="next-card">
+      <div>
+        <div class="next-label">Next Session · Session 2</div>
+        <div class="next-title">POSITION — How do I communicate my value?</div>
+        <div class="next-sub">November 17, 2026</div>
+        <div class="hw-box">
+          <div class="hw-label">Homework for November</div>
+          <div class="hw-text">Write your <strong style="color:#fff;">Impact Story</strong> — a concrete 6-month goal with measurable outcomes. What do I want? What's the first move? Who will help me?</div>
+        </div>
+      </div>
+      <div class="date-box">
+        <div class="db-month">November</div>
+        <div class="db-day">17</div>
+        <div class="db-year">2026</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- SHEET 2: SESSION 1 — OCT 30              -->
+<!-- ══════════════════════════════════════════ -->
+<div class="sheet" id="sheet-oct">
+  <div class="content">
+
+    <!-- HEADER CARD -->
+    <div class="card">
+      <div class="card-header" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);">
+        <h2 style="color:#fff;">Session 1 — CLARIFY · Recap</h2>
+        <span class="date-badge">October 30, 2026</span>
+      </div>
+      <div class="card-body">
+        <div class="stitle">Circle Members</div>
+        <div class="attendees">
+          <div class="attendee"><div class="avatar" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">GG</div><div><div class="att-name">Gabriela Garcia</div><div class="att-role">Solution Engineer · Moderator</div></div></div>
+          <div class="attendee"><div class="avatar" style="background:linear-gradient(135deg,#be185d,#e8457a);">CL</div><div><div class="att-name">Christina Lavash</div><div class="att-role">Customer Success Manager</div></div></div>
+          <div class="attendee"><div class="avatar" style="background:linear-gradient(135deg,#0891b2,#4dd9b0);">LS</div><div><div class="att-name">Lauren Sturla</div><div class="att-role">Program Manager · M&amp;A</div></div></div>
+          <div class="attendee"><div class="avatar" style="background:linear-gradient(135deg,#d97706,#f59e0b);">SF</div><div><div class="att-name">Stephany Fletcher</div><div class="att-role">Marketing · Comms &amp; Enablement</div></div></div>
+          <div class="attendee"><div class="avatar" style="background:linear-gradient(135deg,#16a34a,#4dd9b0);">KH</div><div><div class="att-name">Kerry Hughes</div><div class="att-role">Slack Marketing</div></div></div>
+        </div>
+        <div class="stitle">Key Themes</div>
+        <div class="themes">
+          <span class="pill pp">Impostor Syndrome</span>
+          <span class="pill pk">Career Reconfiguration</span>
+          <span class="pill pb">Navigating Big Company</span>
+          <span class="pill po">Learning to Say No</span>
+          <span class="pill pg">Self-Advocacy</span>
+          <span class="pill pp">Accountability &amp; Safe Space</span>
+          <span class="pill pb">AI &amp; Role Uncertainty</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- WHERE I AM / WHERE I'M GOING -->
+    <div class="card">
+      <div class="card-header" style="background:linear-gradient(135deg,#7c3aed,#be185d);">
+        <h2 style="color:#fff;">Where I Am &amp; Where I'm Going — Member Map</h2>
+      </div>
+      <div class="card-body" style="padding-top:20px;">
+        <div class="member-map">
+
+          <!-- GG -->
+          <div class="mcard" style="border-color:#e8e0ff;">
+            <div class="mcard-header" style="background:linear-gradient(90deg,#7c3aed,#4f46e5);">
+              <div class="avatar" style="background:rgba(255,255,255,0.2);width:26px;height:26px;font-size:10px;">GG</div>
+              <span class="mcard-name">Gabriela Garcia</span>
+              <span class="mcard-role">Solution Engineer · 5 yrs</span>
+            </div>
+            <div class="mcard-body">
+              <div class="mcard-col" style="border-right:1px solid #f0ebff;background:#faf8ff;">
+                <div class="mcard-col-label" style="color:#a78bfa;">📍 Where I Am</div>
+                <div class="mcard-col-text">At a crossroads after 5 years as an SE. Unsure whether to stay technical or move toward sales. I'm a natural executor — I can't say no — and it overwhelms me. My co-workers already tell me "Gabby, don't do it" but I do it anyway.</div>
+              </div>
+              <div class="mcard-col" style="background:#f5f0ff;">
+                <div class="mcard-col-label" style="color:#7c3aed;">🎯 Where I'm Going</div>
+                <div class="mcard-col-text">🗺️ Build a <strong>new career strategy</strong> in 6 months. Discover my strongest skills, explore new paths, and learn to set boundaries. Goal: get clarity on whether I want a new role.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CL -->
+          <div class="mcard" style="border-color:#fce7f3;">
+            <div class="mcard-header" style="background:linear-gradient(90deg,#be185d,#e8457a);">
+              <div class="avatar" style="background:rgba(255,255,255,0.2);width:26px;height:26px;font-size:10px;">CL</div>
+              <span class="mcard-name">Christina Lavash</span>
+              <span class="mcard-role">Customer Success Manager · 1.5 yrs</span>
+            </div>
+            <div class="mcard-body">
+              <div class="mcard-col" style="border-right:1px solid #fce7f3;background:#fff7fb;">
+                <div class="mcard-col-label" style="color:#f9a8d4;">📍 Where I Am</div>
+                <div class="mcard-col-text">Very tough first year — no direct manager for 10 months, 200% workload. I survived and feedback is good. But I feel stuck in CS and want to explore more internal-facing areas of Salesforce.</div>
+              </div>
+              <div class="mcard-col" style="background:#fff0f6;">
+                <div class="mcard-col-label" style="color:#be185d;">🎯 Where I'm Going</div>
+                <div class="mcard-col-text">🔍 Do <strong>internal due diligence</strong>: identify which areas interest me (more internal-facing) and start applying to internal roles. Goal: submit first application within 6 months.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- LS -->
+          <div class="mcard" style="border-color:#e0f2fe;">
+            <div class="mcard-header" style="background:linear-gradient(90deg,#0891b2,#4dd9b0);">
+              <div class="avatar" style="background:rgba(255,255,255,0.2);width:26px;height:26px;font-size:10px;">LS</div>
+              <span class="mcard-name">Lauren Sturla</span>
+              <span class="mcard-role">Program Manager M&amp;A · 7 mos</span>
+            </div>
+            <div class="mcard-body">
+              <div class="mcard-col" style="border-right:1px solid #e0f2fe;background:#f8fcff;">
+                <div class="mcard-col-label" style="color:#7dd3fc;">📍 Where I Am</div>
+                <div class="mcard-col-text">Very new — came from 12 years at another company. I demand too much of myself from day 1. I feel like I should already know everything. Balancing fast learning and being a mom is challenging.</div>
+              </div>
+              <div class="mcard-col" style="background:#eff9ff;">
+                <div class="mcard-col-label" style="color:#0891b2;">🎯 Where I'm Going</div>
+                <div class="mcard-col-text">🌱 Understand the full ecosystem, explore possible paths, and give myself <strong>patience and grace</strong> to learn without self-judgment. Goal: build an internal network.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SF -->
+          <div class="mcard" style="border-color:#fef3c7;">
+            <div class="mcard-header" style="background:linear-gradient(90deg,#d97706,#f59e0b);">
+              <div class="avatar" style="background:rgba(255,255,255,0.2);width:26px;height:26px;font-size:10px;">SF</div>
+              <span class="mcard-name">Stephany Fletcher</span>
+              <span class="mcard-role">Marketing · Comms &amp; Enablement · 4.5 yrs</span>
+            </div>
+            <div class="mcard-body">
+              <div class="mcard-col" style="border-right:1px solid #fef3c7;background:#fffdf5;">
+                <div class="mcard-col-label" style="color:#fcd34d;">📍 Where I Am</div>
+                <div class="mcard-col-text">Excellent communicator — I make everyone else shine, but I become invisible. Tired of constant AI-driven change. I want work-life integration, not just balance.</div>
+              </div>
+              <div class="mcard-col" style="background:#fffbeb;">
+                <div class="mcard-col-label" style="color:#d97706;">🎯 Where I'm Going</div>
+                <div class="mcard-col-text">📣 Work on <strong>self-advocacy</strong> — make my story visible. Get clarity on whether I'm aiming for director level. Goal: concrete career plan and start voicing it out loud.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KH -->
+          <div class="mcard" style="border-color:#dcfce7;">
+            <div class="mcard-header" style="background:linear-gradient(90deg,#16a34a,#4dd9b0);">
+              <div class="avatar" style="background:rgba(255,255,255,0.2);width:26px;height:26px;font-size:10px;">KH</div>
+              <span class="mcard-name">Kerry Hughes</span>
+              <span class="mcard-role">Slack Marketing · 7 mos</span>
+            </div>
+            <div class="mcard-body">
+              <div class="mcard-col" style="border-right:1px solid #dcfce7;background:#f8fff9;">
+                <div class="mcard-col-label" style="color:#86efac;">📍 Where I Am</div>
+                <div class="mcard-col-text">Happy with my team but very insular — only Slack. Not sure if I have the authority to push cross-team projects. Strong impostor syndrome.</div>
+              </div>
+              <div class="mcard-col" style="background:#f0fdf4;">
+                <div class="mcard-col-label" style="color:#16a34a;">🎯 Where I'm Going</div>
+                <div class="mcard-col-text">🤝 Build a <strong>broader internal network</strong> and learn to navigate company politics with more confidence. Goal: be more ambitious and overcome impostor syndrome.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- WHAT WE'RE PROUD OF + ADVICE -->
+    <div class="card">
+      <div class="card-header" style="background:linear-gradient(135deg,#059669,#0891b2);">
+        <h2 style="color:#fff;">What We're Proud Of</h2>
+      </div>
+      <div class="card-body">
+        <div class="two-col">
+          <div class="hcard" style="border-color:#7c3aed;"><div class="hcard-name">🚀 Gabriela</div><div class="hcard-text">Led a $30M attrition &amp; recovery project. Ended up invisible — but the lesson was clear: move, build connections, go to the office.</div></div>
+          <div class="hcard" style="border-color:#be185d;"><div class="hcard-name">💪 Christina</div><div class="hcard-text">Survived a very tough first year with no direct manager for 10 months and 200% workload. Still moving forward with strong feedback from clients and management.</div></div>
+          <div class="hcard" style="border-color:#0891b2;"><div class="hcard-name">✈️ Lauren</div><div class="hcard-text">Made the leap after 12 years at another company. Salesforce interviews made her realize all the impact she'd already created — she hadn't seen it herself.</div></div>
+          <div class="hcard" style="border-color:#d97706;"><div class="hcard-name">🌟 Stephany</div><div class="hcard-text">Launched the Marketing Data Fundamentals program reaching all Salesforce marketers — score &gt;4. Took it from red to green.</div></div>
+          <div class="hcard" style="border-color:#16a34a; grid-column:1/-1;"><div class="hcard-name">🎯 Kerry</div><div class="hcard-text">Built a brand-new program for Slack sellers from scratch. Was surprised by how much she learned just by going heads-down on the work.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" style="background:linear-gradient(135deg,#4f46e5,#0891b2);">
+        <h2 style="color:#fff;">Advice to Your 3-Years-Ago Self</h2>
+      </div>
+      <div class="card-body">
+        <div class="two-col">
+          <div class="acard"><div class="acard-name">Gabriela</div><div class="acard-text">"Move. Build connections. Go to the office. People who don't move — nobody sees them."</div></div>
+          <div class="acard"><div class="acard-name">Christina</div><div class="acard-text">"Trust yourself and your experience. What you observe is an opportunity, not something you just have to accept."</div></div>
+          <div class="acard"><div class="acard-name">Stephany</div><div class="acard-text">"Surround yourself with people who want you to succeed. If you have to fight too hard for that — leave."</div></div>
+          <div class="acard"><div class="acard-name">Kerry</div><div class="acard-text">"Be more ambitious. Take the risks. It'll all work out — be a little braver."</div></div>
+          <div class="acard" style="grid-column:1/-1;background:linear-gradient(135deg,#eff6ff,#f0fdf4);"><div class="acard-name" style="color:#0891b2;">Lauren</div><div class="acard-text">"If you're fighting that hard for your values, that's a sign. Salesforce has those values already embedded — you don't have to fight for them here."</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TED TALK RESOURCE -->
+    <div class="card">
+      <div class="card-header" style="background:linear-gradient(135deg,#be185d,#7c3aed);">
+        <h2 style="color:#fff;">Session Resource · TED Talk</h2>
+        <span class="date-badge">Watch before Nov 25</span>
+      </div>
+      <div class="card-body">
+
+        <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap;">
+          <div style="background:linear-gradient(135deg,#1a0fa8,#be185d);border-radius:14px;padding:20px 24px;min-width:220px;flex-shrink:0;text-align:center;">
+            <div style="font-size:36px;margin-bottom:8px;">🎤</div>
+            <div style="font-size:11px;font-weight:800;color:#06d6c7;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">TEDxWilmingtonSalon · 2022</div>
+            <div style="font-size:14px;font-weight:800;color:#fff;line-height:1.3;margin-bottom:4px;">"The New Way to Brag in the Modern World — and Feel Good Doing It"</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:14px;">Henna Pryor · Performance Coach</div>
+            <a href="https://www.ted.com/talks/henna_pryor_the_new_way_to_brag_in_the_modern_world_and_feel_good_doing_it" target="_blank" style="display:inline-block;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.35);color:#fff;font-size:11px;font-weight:700;padding:6px 16px;border-radius:20px;text-decoration:none;">Watch on TED.com →</a>
+          </div>
+          <div style="flex:1;min-width:220px;">
+            <div class="stitle" style="margin-top:0;">Why this talk for our Circle</div>
+            <p style="font-size:13px;color:#4b4680;line-height:1.7;margin-bottom:12px;">
+              Every single one of us in this Circle mentioned self-advocacy, visibility, or being seen as a challenge. Henna Pryor flips the script: she shows — backed by research — that sharing your wins isn't arrogance, it's a career skill. And it can be learned.
+            </p>
+            <p style="font-size:13px;color:#4b4680;line-height:1.7;">
+              Her concept of <strong>"Good Bragging"</strong> is the bridge between staying invisible (which none of us wants) and coming off as obnoxious (which we're all afraid of). The sweet spot is being seen as <em>both</em> competent <em>and</em> likable — and she teaches exactly how.
+            </p>
+          </div>
+        </div>
+
+        <div class="stitle">Key Ideas from the Talk</div>
+        <div class="two-col">
+          <div class="acard" style="border-left:3px solid #7c3aed;">
+            <div class="acard-name" style="color:#7c3aed;">Sharing wins = career survival</div>
+            <div class="acard-text">In the hybrid world, if people can't see your work, it doesn't exist. Visibility is no longer optional — it's how you stay relevant and get considered for opportunities.</div>
+          </div>
+          <div class="acard" style="border-left:3px solid #be185d;">
+            <div class="acard-name" style="color:#be185d;">"Good Bragging" is research-backed</div>
+            <div class="acard-text">It's not just a feel-good concept. Studies show that the most successful professionals are perceived as both highly competent AND highly likable — not one or the other.</div>
+          </div>
+          <div class="acard" style="border-left:3px solid #0891b2;">
+            <div class="acard-name" style="color:#0891b2;">Competence + Likability = the formula</div>
+            <div class="acard-text">Most people sacrifice one for the other. Good Bragging is the method that lets you claim both — by being specific, warm, and connecting your win to impact on others.</div>
+          </div>
+          <div class="acard" style="border-left:3px solid #16a34a;">
+            <div class="acard-name" style="color:#16a34a;">It's a learnable skill</div>
+            <div class="acard-text">Self-promotion isn't a personality trait. It's a skill with a framework. If Stephany makes everyone else shine and disappears, or Kerry holds back cross-team — this is for them.</div>
+          </div>
+        </div>
+
+        <div style="background:#f5f0ff;border-radius:12px;padding:16px 20px;margin-top:20px;border-left:4px solid #7c3aed;">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#7c3aed;margin-bottom:6px;">Homework — Watch before Session 2 · Nov 25</div>
+          <div style="font-size:14px;color:#1e0e4a;font-style:italic;line-height:1.7;">
+            "Think of a win from the last 6 months that you never talked about out loud. Come ready to share it using her framework — specific, impact-connected, warm, and unapologetic."
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- NEXT SESSION -->
+    <div class="next-card">
+      <div>
+        <div class="next-label">Next · Session 2</div>
+        <div class="next-title">POSITION — How do I communicate my value?</div>
+        <div class="next-sub">November 17, 2026</div>
+        <div class="hw-box">
+          <div class="hw-label">Homework</div>
+          <div class="hw-text">Write your <strong style="color:#fff;">Impact Story</strong> with measurable goals for the 6-month period. What do I want? What's the first move? Who will help me?</div>
+        </div>
+      </div>
+      <div class="date-box">
+        <div class="db-month">November</div>
+        <div class="db-day">17</div>
+        <div class="db-year">2026</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- SHEET 3–7: UPCOMING SESSIONS (placeholders) -->
+<!-- ══════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════ -->
+<!-- SHEET 2: SESSION 2 — NOV 17 RECAP        -->
+<!-- ══════════════════════════════════════════ -->
+<div class="sheet" id="sheet-nov">
+  <div class="content">
+
+    <!-- SUMMARY BANNER -->
+    <div style="background:linear-gradient(135deg,#2d1060,#7c3aed,#be185d);border-radius:18px;padding:28px 32px;margin-bottom:24px;position:relative;overflow:hidden;">
+      <div style="position:absolute;right:-40px;top:-40px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.05);"></div>
+      <div style="font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#06d6c7;margin-bottom:10px;">Session 2 · November 17, 2026 · 57 min</div>
+      <div style="font-size:22px;font-weight:900;color:#fff;margin-bottom:14px;line-height:1.2;">POSITION — How do I communicate my value?</div>
+      <p style="font-size:14px;color:rgba(255,255,255,0.85);line-height:1.75;max-width:720px;margin-bottom:18px;">
+        Four members came to this session carrying wins they had never said out loud. Through the <strong style="color:#fff;">Impact Story formula</strong> — what happened, what I did, what changed, and why it mattered — each one found words for work that had been invisible: a $14M telecom deal orchestrated quietly for a year, executive messaging that stopped an internal war, a Severity 1 crisis that rebuilt a customer's trust, and a year of showing up new that became a story of real growth. The session's central realization: <em style="color:#06d6c7;">self-promotion is not arrogance — it's making sure the people who matter know what you're actually doing.</em>
+      </p>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;">
+        <div style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:10px 16px;text-align:center;">
+          <div style="font-size:22px;font-weight:900;color:#fff;">4</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.7);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Impact Stories</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:10px 16px;text-align:center;">
+          <div style="font-size:22px;font-weight:900;color:#fff;">1</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.7);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">TED Talk Reference</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:10px 16px;text-align:center;">
+          <div style="font-size:22px;font-weight:900;color:#fff;">3</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.7);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Homework Items</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:10px 16px;text-align:center;">
+          <div style="font-size:22px;font-weight:900;color:#fff;">Jan</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.7);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Next Session</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TED TALK RESOURCE -->
+    <div class="card">
+      <div class="card-header" style="background:linear-gradient(135deg,#be185d,#7c3aed);">
+        <h2 style="color:#fff;">Session Resource · TED Talk</h2>
+        <span class="date-badge">Pre-read / Watch</span>
+      </div>
+      <div class="card-body">
+
+        <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap;">
+          <div style="background:linear-gradient(135deg,#1a0fa8,#be185d);border-radius:14px;padding:20px 24px;min-width:220px;flex-shrink:0;text-align:center;">
+            <div style="font-size:36px;margin-bottom:8px;">🎤</div>
+            <div style="font-size:11px;font-weight:800;color:#06d6c7;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">TEDxWilmingtonSalon · 2022</div>
+            <div style="font-size:14px;font-weight:800;color:#fff;line-height:1.3;margin-bottom:4px;">"The New Way to Brag in the Modern World — and Feel Good Doing It"</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:14px;">Henna Pryor · Performance Coach</div>
+            <a href="https://www.ted.com/talks/henna_pryor_the_new_way_to_brag_in_the_modern_world_and_feel_good_doing_it" target="_blank" style="display:inline-block;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.35);color:#fff;font-size:11px;font-weight:700;padding:6px 16px;border-radius:20px;text-decoration:none;">Watch on TED.com →</a>
+          </div>
+          <div style="flex:1;min-width:220px;">
+            <div class="stitle" style="margin-top:0;">Why this talk for our Circle</div>
+            <p style="font-size:13px;color:#4b4680;line-height:1.7;margin-bottom:12px;">
+              Every single one of us in this Circle mentioned self-advocacy, visibility, or being seen as a challenge. Henna Pryor flips the script: she shows — backed by research — that sharing your wins isn't arrogance, it's a career skill. And it can be learned.
+            </p>
+            <p style="font-size:13px;color:#4b4680;line-height:1.7;">
+              Her concept of <strong>"Good Bragging"</strong> is the bridge between staying invisible (which none of us wants) and coming off as obnoxious (which we're all afraid of). The sweet spot is being seen as <em>both</em> competent <em>and</em> likable — and she teaches exactly how.
+            </p>
+          </div>
+        </div>
+
+        <div class="stitle">Key Ideas from the Talk</div>
+        <div class="two-col">
+          <div class="acard" style="border-left:3px solid #7c3aed;">
+            <div class="acard-name" style="color:#7c3aed;">Sharing wins = career survival</div>
+            <div class="acard-text">In the hybrid world, if people can't see your work, it doesn't exist. Visibility is no longer optional — it's how you stay relevant and get considered for opportunities.</div>
+          </div>
+          <div class="acard" style="border-left:3px solid #be185d;">
+            <div class="acard-name" style="color:#be185d;">"Good Bragging" is research-backed</div>
+            <div class="acard-text">It's not just a feel-good concept. Studies show that the most successful professionals are perceived as both highly competent AND highly likable — not one or the other.</div>
+          </div>
+          <div class="acard" style="border-left:3px solid #0891b2;">
+            <div class="acard-name" style="color:#0891b2;">Competence + Likability = the formula</div>
+            <div class="acard-text">Most people sacrifice one for the other. Good Bragging is the method that lets you claim both — by being specific, warm, and connecting your win to impact on others.</div>
+          </div>
+          <div class="acard" style="border-left:3px solid #16a34a;">
+            <div class="acard-name" style="color:#16a34a;">It's a learnable skill</div>
+            <div class="acard-text">Self-promotion isn't a personality trait. It's a skill with a framework. If you make others shine but disappear yourself, or hold back cross-team — this talk is for you.</div>
+          </div>
+        </div>
+
+        <div style="background:#f5f0ff;border-radius:12px;padding:16px 20px;margin-top:20px;border-left:4px solid #7c3aed;">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#7c3aed;margin-bottom:6px;">Reflection prompt</div>
+          <div style="font-size:14px;color:#1e0e4a;font-style:italic;line-height:1.7;">
+            "Think of a win from the last 6 months that you never talked about out loud. How would you describe it using her framework — specific, impact-connected, warm, and unapologetic?"
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- HEADER -->
+    <div class="card">
+      <div class="card-header" style="background:linear-gradient(135deg,#be185d,#7c3aed);">
+        <h2 style="color:#fff;">Session 2 — POSITION · Recap</h2>
+        <span class="date-badge">November 17, 2026</span>
+      </div>
+      <div class="card-body">
+        <div class="stitle">Circle Members</div>
+        <div class="attendees">
+          <div class="attendee"><div class="avatar" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">GG</div><div><div class="att-name">Gabriela Garcia</div><div class="att-role">Solution Engineer · Moderator</div></div></div>
+          <div class="attendee"><div class="avatar" style="background:linear-gradient(135deg,#be185d,#e8457a);">CL</div><div><div class="att-name">Christina Lavash</div><div class="att-role">Customer Success Manager</div></div></div>
+          <div class="attendee"><div class="avatar" style="background:linear-gradient(135deg,#16a34a,#4dd9b0);">KH</div><div><div class="att-name">Kerry Hughes</div><div class="att-role">Slack Marketing</div></div></div>
+          <div class="attendee"><div class="avatar" style="background:linear-gradient(135deg,#d97706,#f59e0b);">SF</div><div><div class="att-name">Stephany Fletcher</div><div class="att-role">Marketing · Comms &amp; Enablement</div></div></div>
+        </div>
+        <div class="stitle">Key Themes</div>
+        <div class="themes">
+          <span class="pill pp">Impact Story Formula</span>
+          <span class="pill pk">Self-Promotion ≠ Arrogance</span>
+          <span class="pill pb">Invisible Work Made Visible</span>
+          <span class="pill po">Women &amp; Claiming Credit</span>
+          <span class="pill pg">Good Bragging in Practice</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMPACT STORIES -->
+    <div class="card">
+      <div class="card-header" style="background:linear-gradient(135deg,#7c3aed,#be185d);">
+        <h2 style="color:#fff;">Impact Stories — Each Member's Win</h2>
+      </div>
+      <div class="card-body" style="padding-top:20px;">
+        <div class="member-map">
+
+          <div class="mcard" style="border-color:#e8e0ff;">
+            <div class="mcard-header" style="background:linear-gradient(90deg,#7c3aed,#4f46e5);">
+              <div class="avatar" style="background:rgba(255,255,255,0.2);width:26px;height:26px;font-size:10px;">GG</div>
+              <span class="mcard-name">Gabriela Garcia</span>
+              <span class="mcard-role">$14M TCB Telecom Deal</span>
+            </div>
+            <div class="mcard-body">
+              <div class="mcard-col" style="border-right:1px solid #f0ebff;background:#faf8ff;">
+                <div class="mcard-col-label" style="color:#a78bfa;">What I did</div>
+                <div class="mcard-col-text">For one full year, articulated the installed base of a major telecom, identified a new Data Cloud opportunity, brought in the right specialists, and kept the client engaged through difficult moments — including being kicked out of the office.</div>
+              </div>
+              <div class="mcard-col" style="background:#f5f0ff;">
+                <div class="mcard-col-label" style="color:#7c3aed;">Impact &amp; realization</div>
+                <div class="mcard-col-text">Closed $14M TCB (+$3M new Data Cloud ACB). A co-worker told her: <em>"Gabby, if you weren't there, we wouldn't have gotten the money."</em> She wasn't the main closer — but she was the orchestrator who made it possible.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mcard" style="border-color:#fef3c7;">
+            <div class="mcard-header" style="background:linear-gradient(90deg,#d97706,#f59e0b);">
+              <div class="avatar" style="background:rgba(255,255,255,0.2);width:26px;height:26px;font-size:10px;">SF</div>
+              <span class="mcard-name">Stephany Fletcher</span>
+              <span class="mcard-role">Executive Messaging on Complex Program</span>
+            </div>
+            <div class="mcard-body">
+              <div class="mcard-col" style="border-right:1px solid #fef3c7;background:#fffdf5;">
+                <div class="mcard-col-label" style="color:#fcd34d;">What I did</div>
+                <div class="mcard-col-text">Translated highly technical, complex program details into executive messaging so leaders on both sides of an internal conflict could understand and make decisions.</div>
+              </div>
+              <div class="mcard-col" style="background:#fffbeb;">
+                <div class="mcard-col-label" style="color:#d97706;">Impact</div>
+                <div class="mcard-col-text">Became the confidant both sides of leadership trusted. Reduced infighting by creating shared understanding. The leaders on each team came to her for perspective on the other — invisible glue work made visible.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mcard" style="border-color:#fce7f3;">
+            <div class="mcard-header" style="background:linear-gradient(90deg,#be185d,#e8457a);">
+              <div class="avatar" style="background:rgba(255,255,255,0.2);width:26px;height:26px;font-size:10px;">CL</div>
+              <span class="mcard-name">Christina Lavash</span>
+              <span class="mcard-role">Severity 1 — Revenue Cloud Crisis</span>
+            </div>
+            <div class="mcard-body">
+              <div class="mcard-col" style="border-right:1px solid #fce7f3;background:#fff7fb;">
+                <div class="mcard-col-label" style="color:#f9a8d4;">What I did</div>
+                <div class="mcard-col-text">Coordinated internal product and support teams with a customer completely blocked from making quotes. Got both sides talking, ran daily standups, pushed for full context even when both sides were defensive.</div>
+              </div>
+              <div class="mcard-col" style="background:#fff0f6;">
+                <div class="mcard-col-label" style="color:#be185d;">Impact</div>
+                <div class="mcard-col-text">Identified a Salesforce-side bug, unblocked the customer's daily operations, and restored their confidence in the platform. Also unlocked the account team's ability to have strategic conversations again. Seen by product, sales, and customer leadership.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mcard" style="border-color:#dcfce7;">
+            <div class="mcard-header" style="background:linear-gradient(90deg,#16a34a,#4dd9b0);">
+              <div class="avatar" style="background:rgba(255,255,255,0.2);width:26px;height:26px;font-size:10px;">KH</div>
+              <span class="mcard-name">Kerry Hughes</span>
+              <span class="mcard-role">Dreamforce Budget &amp; Year of Growth</span>
+            </div>
+            <div class="mcard-body">
+              <div class="mcard-col" style="border-right:1px solid #dcfce7;background:#f8fff9;">
+                <div class="mcard-col-label" style="color:#86efac;">What I did</div>
+                <div class="mcard-col-text">Learned a complex budgeting system from scratch, managed Dreamforce budget across branding, finance, design, and external agencies, and kept all moving pieces on track under a hard deadline. Also went from never having heard of a program to running full leadership meetings on it.</div>
+              </div>
+              <div class="mcard-col" style="background:#f0fdf4;">
+                <div class="mcard-col-label" style="color:#16a34a;">Impact</div>
+                <div class="mcard-col-text">Single view of budget → cleaner reporting → successful Dreamforce. No longer "net new" — fully part of the team. The year of onboarding IS the impact story: she showed up, learned fast, and delivered.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- KEY DISCUSSION MOMENTS -->
+    <div class="card">
+      <div class="card-header" style="background:linear-gradient(135deg,#059669,#0891b2);">
+        <h2 style="color:#fff;">Key Discussion Moments</h2>
+      </div>
+      <div class="card-body">
+        <div class="two-col">
+          <div class="hcard" style="border-color:#7c3aed;">
+            <div class="hcard-name">Self-promotion ≠ self-congratulation</div>
+            <div class="hcard-text">Gabriela named it out loud: "In my mind, saying 'I did it' feels arrogant. But there are people who do 10% of what I do and they own the room." The circle recognized this as a shared pattern.</div>
+          </div>
+          <div class="hcard" style="border-color:#be185d;">
+            <div class="hcard-name">Invisible work is still work</div>
+            <div class="hcard-text">Kerry: "Wins are not always as clear-cut as closing a huge deal. Sometimes it's those smaller in-between moments — the background things that keep the visible things working well."</div>
+          </div>
+          <div class="hcard" style="border-color:#0891b2;">
+            <div class="hcard-name">The "commanding women" double standard</div>
+            <div class="hcard-text">Kerry: "We're conditioned to be the nice one. If a guy did the same thing it wouldn't feel out of the ordinary." Gabriela: being direct reads differently for women — but results are results.</div>
+          </div>
+          <div class="hcard" style="border-color:#16a34a;">
+            <div class="hcard-name">STAR + Value = the full formula</div>
+            <div class="hcard-text">Christina: the impact formula mirrors STAR (Situation, Task, Action, Result) but adds the key layer most people skip — <em>why did it actually matter?</em> That's what turns a task into an impact story.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OWN YOUR IMPACT -->
+    <div class="card">
+      <div class="card-header" style="background:linear-gradient(135deg,#4f46e5,#be185d);">
+        <h2 style="color:#fff;">Own Your Impact</h2>
+      </div>
+      <div class="card-body">
+        <p style="font-size:13px;color:#4b4680;line-height:1.7;margin-bottom:20px;">Each member committed to <em>when</em> and <em>where</em> they'll use their story next.</p>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+          <div style="background:#faf8ff;border:1px solid #e8e0ff;border-radius:12px;padding:16px 18px;">
+            <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#7c3aed;margin-bottom:5px;">👤 Who I'll tell first</div>
+            <div style="font-size:13px;color:#4b4680;line-height:1.6;">Someone who already supports you. Low-stakes rehearsal before the bigger moments.</div>
+          </div>
+          <div style="background:#faf8ff;border:1px solid #e8e0ff;border-radius:12px;padding:16px 18px;">
+            <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#7c3aed;margin-bottom:10px;">📍 Where I'll tell it next</div>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;">
+              <span style="background:#ede9ff;color:#5b21b6;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;border:1px solid #c4b5fd;">Year-end review</span>
+              <span style="background:#ede9ff;color:#5b21b6;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;border:1px solid #c4b5fd;">1:1 with my manager</span>
+              <span style="background:#ede9ff;color:#5b21b6;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;border:1px solid #c4b5fd;">A promotion conversation</span>
+              <span style="background:#ede9ff;color:#5b21b6;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;border:1px solid #c4b5fd;">With my sponsor or mentor</span>
+              <span style="background:#ede9ff;color:#5b21b6;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;border:1px solid #c4b5fd;">My CV or an interview</span>
+              <span style="background:#ede9ff;color:#5b21b6;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;border:1px solid #c4b5fd;">A team update</span>
+            </div>
+          </div>
+          <div style="background:#faf8ff;border:1px solid #e8e0ff;border-radius:12px;padding:16px 18px;">
+            <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#7c3aed;margin-bottom:5px;">📅 By when</div>
+            <div style="font-size:13px;color:#4b4680;line-height:1.6;">A specific date in your calendar. Not "soon."</div>
+          </div>
+        </div>
+        <div style="background:linear-gradient(135deg,#1a0fa8,#5b2be8);border-radius:14px;padding:18px 22px;margin-bottom:12px;">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#06d6c7;margin-bottom:8px;">Closing · Said out loud by each member</div>
+          <div style="font-size:15px;font-weight:700;color:#fff;font-style:italic;">"One impact I'm ready to own is…"</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.65);margin-top:5px;">Rate 1–5: how clear is your impact story right now?</div>
+        </div>
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:14px 18px;">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#16a34a;margin-bottom:5px;">📓 Deliverable · Your Journal</div>
+          <div style="font-size:13px;color:#1e3a2f;line-height:1.6;">Write a first draft of your <strong>Impact Story</strong> in the November section of your Journal — specific, honest, unapologetic.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEXT SESSION -->
+    <div class="next-card">
+      <div>
+        <div class="next-label">Next · Session 3</div>
+        <div class="next-title">ADAPT — How do I stay relevant?</div>
+        <div class="next-sub">January 2027 · Date TBD</div>
+        <div class="hw-box">
+          <div class="hw-label">Homework for January</div>
+          <div class="hw-text">Three things: <strong style="color:#fff;">My move</strong> (first action toward my goal) · <strong style="color:#fff;">My person</strong> (who can help or sponsor me) · <strong style="color:#fff;">My date</strong> (when I'll do it). Gabriela will post a summary in the group.</div>
+        </div>
+      </div>
+      <div class="date-box">
+        <div class="db-month">January</div>
+        <div class="db-day">2027</div>
+        <div class="db-year">Date TBD</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="sheet" id="sheet-dec">
+  <div class="content">
+    <div class="placeholder" style="margin-top:40px;">
+      <div class="placeholder-icon">📅</div>
+      <div class="placeholder-title">Session 3 — ADAPT · Dec/Jan</div>
+      <div class="placeholder-sub">How do I stay relevant? · Date TBD</div>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet-feb">
+  <div class="content">
+    <div class="placeholder" style="margin-top:40px;">
+      <div class="placeholder-icon">📅</div>
+      <div class="placeholder-title">Session 4 — CONNECT · February</div>
+      <div class="placeholder-sub">Who needs to be in my career community? · Upcoming</div>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet-mar">
+  <div class="content">
+    <div class="placeholder" style="margin-top:40px;">
+      <div class="placeholder-icon">📅</div>
+      <div class="placeholder-title">Session 5 — ADVOCATE · March</div>
+      <div class="placeholder-sub">How do I ask for what I need? · Upcoming</div>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet-apr">
+  <div class="content">
+    <div class="placeholder" style="margin-top:40px;">
+      <div class="placeholder-icon">🎯</div>
+      <div class="placeholder-title">Session 6 — ACT · April</div>
+      <div class="placeholder-sub">What am I doing next? · Final session of the circle</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showSheet(name) {
+    document.querySelectorAll('.sheet').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('sheet-' + name).classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
